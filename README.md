@@ -1,0 +1,153 @@
+<div align="center">
+  <h1>MARS</h1>
+  <em>Margin-Adversarial Risk-controlled Stopping</em>
+  <br/>
+  <em>Token-efficient early stopping for parallel LLM reasoning</em>
+</div>
+
+---
+
+MARS decides *when to stop* a pool of parallel reasoning traces. Self-consistency
+and confidence voting run every trace to its full length and then vote; MARS
+instead probes intermediate answers at checkpoints and stops as soon as the
+leading answer is provably safe — when its margin over every challenger exceeds
+the worst-case damage that future answer switches could inflict. It preserves
+full-budget accuracy (within 0.6 pp across 18 settings) while saving **24–47%**
+of tokens under self-consistency and a further **13–29%** on top of DeepConf.
+
+This repository has two halves:
+
+- **`mars/`** — the offline **simulator**: a vectorized engine that bootstraps
+  budget-K parallel runs from a pool of pre-generated traces, votes at each
+  checkpoint, and applies a pluggable stopping rule. This is what reproduces the
+  paper tables.
+- **`generation/`** — the **data pipeline** that produces the traces: generate →
+  probe → aggregate (SGLang, multi-GPU). Needs a CUDA GPU.
+
+The two are linked only by the trace pickle format
+([`docs/data_format.md`](docs/data_format.md)).
+
+## How it works
+
+At checkpoint $t$, for each challenger answer $k$ the leader $L$ is certified
+safe when
+
+$$M_k(t) \ge \sum_{j\in\mathcal{A}_t} q_j\, c_j^k(\gamma),$$
+
+where $M_k(t)=V_L(t)-V_k(t)$ is the current margin, $q_j$ is a per-trace switch
+probability (how likely trace $j$ changes its answer before the budget ends), and
+$c_j^k(\gamma)$ is the adversarial switch cost. The leader stops once **every**
+challenger — including a synthetic unseen one — is certified.
+
+- **$q_j$** is a 5-feature logistic model (checkpoint position, probe confidence,
+  answer-flip count, stability streak, confidence trend) fit on 16 warmup traces
+  per question, with Platt calibration.
+- **$\gamma \in [\tfrac12, 1]$** relaxes the fully-adversarial cost toward observed
+  destination behavior, calibrated per question from warmup traces.
+
+See the paper for the safety theorem and [`docs/system_design.md`](docs/system_design.md)
+for the implementation.
+
+## Install
+
+Dependencies are managed with [`uv`](https://docs.astral.sh/uv/). Answer
+equivalence uses `dynasor.core.evaluator.math_equal` from the
+[Dynasor](https://github.com/hao-ai-lab/Dynasor) repo (installed automatically;
+**not** the unrelated PyPI package named `dynasor`).
+
+```bash
+uv sync                      # simulator only
+uv sync --extra generation   # + trace/probe generation (needs CUDA + SGLang)
+```
+
+## Quick start (simulator)
+
+Run a method over a model–dataset pool. Results are written under
+`results/{model}/{dataset}/` (see [`docs/experiment_output_convention.md`](docs/experiment_output_convention.md)).
+
+```bash
+# Self-consistency baseline (full budget, no stopping)
+uv run python examples/run_experiment.py --model deepseek-8b --dataset brumo-2025 --method offline
+
+# MARS on self-consistency (calibrated gamma)
+uv run python examples/run_experiment.py --model deepseek-8b --dataset brumo-2025 \
+    --method sc-qm3-nc-oqg --warmup-gamma --ucb-z 1.0 --gamma-min 0.5
+
+# MARS on DeepConf Online
+uv run python examples/run_experiment.py --model deepseek-8b --dataset brumo-2025 \
+    --method dco-qm3-nc-oqg --warmup-gamma --ucb-z 1.0 --gamma-min 0.5
+```
+
+All reported runs use `--budget 512 --iterations 64 --warmup 16 --window 2048 --seed 42`.
+
+## Methods
+
+MARS layers on two voting pipelines: **SC** (self-consistency, uniform weights)
+and **DCO** (DeepConf Online, confidence weighting + threshold filtering). Each
+`--method` is a code consumed by `examples/run_experiment.py`:
+
+| Paper row | SC pipeline | DCO pipeline |
+|---|---|---|
+| Baseline (full budget) | `offline` | `dco` |
+| MARS, fully conservative ($\gamma=1$) | `sc-qm3-nc` | `dco-qm3-nc` |
+| MARS, calibrated $\gamma$ | `sc-qm3-nc-oqg` † | `dco-qm3-nc-oqg` † |
+| MARS, oracle-$q$ diagnostic | `sc-oq-nc` | `dco-oq-nc` |
+| Parallel-Probe baseline | `sc-pp` | — |
+
+† add `--warmup-gamma --ucb-z 1.0 --gamma-min 0.5` for per-question $\gamma$
+calibration. (The oracle-$q$ rows replace the learned switch model with the
+retrospective switch indicator — a diagnostic upper bound, not deployable.)
+
+> The Hoeffding concentration term $\epsilon(N,\delta)$ from the safety theorem
+> is **off** in all reported runs (the calibrated rule above is used). It can be
+> enabled in code (`PerTraceQStopping(use_correction=True)`); `--delta` only
+> affects that path.
+
+## Results
+
+Calibrated MARS, `--budget 512 --iterations 64 --seed 42`. "Baseline" is
+full-budget voting accuracy; "+MARS" is early-stopped accuracy. Savings are mean
+per-question token reductions vs each pipeline's own baseline.
+
+| Model | Dataset | SC | +MARS | Savings | DCO | +MARS | Savings |
+|-------|---------|----|-------|---------|-----|-------|---------|
+| DeepSeek-8B | BRUMO '25 | 93.2 | 93.2 | 33.7% | 93.3 | 93.3 | 17.1% |
+| DeepSeek-8B | AIME '25  | 83.3 | 83.3 | 36.3% | 88.6 | 88.6 | 18.2% |
+| DeepSeek-8B | HMMT      | 70.0 | 70.0 | 28.4% | 78.7 | 78.6 | 13.4% |
+| Qwen3-32B | BRUMO '25   | 90.9 | 90.3 | 35.8% | 92.4 | 92.4 | 23.1% |
+| Qwen3-32B | AIME '25    | 80.1 | 80.1 | 37.1% | 79.8 | 80.1 | 25.9% |
+| Qwen3-32B | HMMT        | 62.8 | 62.8 | 24.3% | 65.1 | 65.1 | 15.5% |
+| Qwen3-next | BRUMO '25  | 96.7 | 96.7 | 47.4% | 95.5 | 95.5 | 29.4% |
+| Qwen3-next | AIME '25   | 86.9 | 86.9 | 41.4% | 90.0 | 90.0 | 21.1% |
+| Qwen3-next | HMMT       | 86.9 | 86.9 | 31.1% | 82.3 | 82.3 | 16.0% |
+
+## Generating traces
+
+To build your own trace pool (or reproduce on a new model/dataset), see
+[`generation/README.md`](generation/README.md). The 3-stage pipeline writes the
+`(qid, trace_idx) → {confs, extracted_answer, ground_truth, probes}` pickle the
+simulator reads.
+
+## Repository layout
+
+```
+mars/             # simulator package (loaders, voting, q-model, simulation engine)
+generation/       # trace + probe generation (SGLang, multi-GPU)
+examples/         # run_experiment.py — unified CLI
+docs/             # system_design, data_format, theorem, output convention
+data/             # question files (JSONL) + trace pools (see docs/data_format.md)
+```
+
+## Citation
+
+```bibtex
+@article{mars2026,
+  title  = {Margin-Adversarial Risk-controlled Stopping for Parallel LLM Reasoning},
+  author = {Chen, Wenbo and Liu, Mengyang},
+  year   = {2026}
+}
+```
+
+Math-answer equivalence is adapted from
+[Dynasor](https://github.com/hao-ai-lab/Dynasor) (and originally Qwen2.5-Math).
+Licensed under MIT.

@@ -1,0 +1,38 @@
+[project]
+name = "mars-stopping"
+version = "0.1.0"
+description = "Margin-Adversarial Risk-controlled Stopping — offline simulator for confidence-based early stopping of parallel LLM reasoning"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+# Core simulator dependencies (the `mars` package + examples/run_experiment.py).
+# Math-answer equivalence uses dynasor.core.evaluator from the hao-ai-lab repo
+# (NOT the PyPI package named "dynasor", which is unrelated).
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "scipy>=1.10",
+    "scikit-learn>=1.3",
+    "sympy>=1.12",
+    "latex2sympy2>=1.9",
+    "dynasor",
+]
+
+[project.optional-dependencies]
+# Trace + probe generation (generation/). Requires a CUDA GPU.
+generation = [
+    "sglang[all]",
+    "transformers",
+    "ninja",
+]
+
+[tool.uv.sources]
+dynasor = { git = "https://github.com/hao-ai-lab/Dynasor.git" }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mars"]
