@@ -98,6 +98,11 @@ Output (in `probe_results/brumo25/traces/aggregated/`):
 - `aggregated_traces.pkl` — dict keyed by `(qid, trace_idx)`
 - `aggregated_summary.csv` — flat CSV, one row per `(qid, trace_idx, token_position)`
 
+> **`--conf-data-dir` is required for simulator-compatible output.** It merges
+> the per-token `confs` (and `extracted_answer`) from Stage 1 into each record.
+> The `mars` simulator requires `confs`, so without this flag the resulting
+> `aggregated_traces.pkl` will fail to load. Point it at the Stage 1 output dir.
+
 ## Notes
 
 - `helper.py` holds shared utilities (prompt prep, answer extraction,

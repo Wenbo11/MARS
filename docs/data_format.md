@@ -23,24 +23,35 @@ a single Python pickle holding a dict keyed by `(qid, trace_idx)`:
 ```python
 {
     (qid, trace_idx): {
-        "qid":              int,            # question id
-        "trace_idx":        int,            # trace index within the question
-        "ground_truth":     str,            # question-level answer (same for all traces of a qid)
-        "extracted_answer": str | None,     # final answer parsed from the full trace
-        "confs":            np.ndarray,     # [num_tokens] per-token confidence (float; stored float16)
-        "probes": {                         # intermediate answers at checkpoints
+        "qid":              int,            # required — question id
+        "trace_idx":        int,            # required — trace index within the question
+        "ground_truth":     str,            # required — question-level answer (same for all traces of a qid)
+        "confs":            np.ndarray,     # required — [num_tokens] per-token confidence (float; stored float16)
+        "probes": {                         # required — intermediate answers at checkpoints
             token_position: {
-                "answer":     str | None,   # answer if the trace were stopped at this position
-                "is_correct": bool,         # optional; matches ground_truth
-                "raw_text":   str,          # optional; the probe completion
+                "answer":     str | None,   # required — answer if the trace were stopped here
+                "is_correct": bool,         # optional — matches ground_truth
+                "raw_text":   str,          # optional — the probe completion
                 "avg_conf":   float,        # optional
             },
             ...
         },
+        "extracted_answer": str | None,     # optional — final answer parsed from the full trace
     },
     ...
 }
 ```
+
+Required vs. optional refers to what `mars/pkl_loader.py` accesses: `confs`,
+`probes`, `qid`, `trace_idx`, and `ground_truth` are read unconditionally — a
+record missing any of them fails to load. `extracted_answer` is read with a
+default of `None`. Within each probe, only `answer` is required (`is_correct` is
+used as a fast path when present, else recomputed via `math_equal`).
+
+> **Generation note:** run `generation/aggregate.py` with `--conf-data-dir`
+> pointing at the Stage 1 output — that flag is what merges `confs` (and
+> `extracted_answer`) into each record. Without it the pickle lacks `confs` and
+> will not load.
 
 Key points the simulator relies on (`mars/pkl_loader.py`):
 

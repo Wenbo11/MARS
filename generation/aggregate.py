@@ -5,10 +5,12 @@ Outputs (saved to <results_dir>/aggregated/):
   - aggregated_traces.pkl: dict keyed by (qid, trace_idx) with all probe data
   - aggregated_summary.csv: flat CSV with one row per (qid, trace_idx, token_position)
 
-If --conf-data-dir is provided, the per-token confidence list (`confs`) and
-`extracted_answer` from the matching bedrock trace are merged into each record
-in the pickle output. `extracted_answer` is also added to each CSV row (the
-`confs` list stays pickle-only to keep CSV size manageable).
+--conf-data-dir (the Stage 1 trace-generation output) is REQUIRED to produce
+simulator-compatible output: it merges the per-token confidence list (`confs`)
+and `extracted_answer` from the matching trace into each record. The `mars`
+simulator requires `confs`, so omitting this flag yields a pickle that fails to
+load. `extracted_answer` is also added to each CSV row (the `confs` list stays
+pickle-only to keep CSV size manageable).
 
 Usage:
   python generation/aggregate.py <traces_dir> [--conf-data-dir <conf_data_dir>]
@@ -172,8 +174,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Aggregate probe trace files")
     parser.add_argument("traces_dir", type=Path, help="Directory containing trace .pkl files")
     parser.add_argument("--conf-data-dir", type=Path, default=None,
-                        help="Optional bedrock conf-data directory to merge "
-                             "per-token confs and extracted_answer from")
+                        help="Stage 1 (trace generation) output directory to merge "
+                             "per-token confs and extracted_answer from. REQUIRED for "
+                             "simulator-compatible output: the mars simulator needs "
+                             "`confs`, so omitting this produces a pickle that fails "
+                             "to load.")
     args = parser.parse_args()
 
     output_dir = args.traces_dir.parent / "aggregated"
