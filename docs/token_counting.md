@@ -15,7 +15,7 @@ There are two paths depending on whether early stopping fires.
 ### Path A: Early stopping at probe position $p$
 
 When a stopping strategy triggers at probe position $p$
-(`mars/simulation.py:637-644`):
+(in `simulate_with_stopping()`):
 
 ```
 tokens_per_trace = min(sampled_tokens, truncation_positions, p)
@@ -34,7 +34,7 @@ tightest of three caps:
 ### Path B: Budget exhaustion (no early stopping)
 
 When all probe positions are exhausted without stopping
-(`mars/simulation.py:694-698`):
+(in `simulate_with_stopping()`):
 
 ```
 tokens_per_trace = min(sampled_tokens, truncation_positions)
@@ -45,7 +45,7 @@ There is no $p$ cap because we never stopped early. Each trace contributes
 `min(full_length, trunc_point)`.
 
 This is the path the bare `dco` method takes (it uses `NeverStop`). DCO-family
-methods with stopping strategies (e.g., `dco-qm3-nc`) can stop early and use
+methods with stopping strategies (e.g., `dco-mars`) can stop early and use
 Path A instead.
 
 ## Truncation Positions
@@ -98,7 +98,7 @@ evidence is already observable.
 
 ## Methods Without Truncation
 
-For methods that don't use DCO-style truncation (e.g., `sc-qm3-nc`, `offline`),
+For methods that don't use DCO-style truncation (e.g., `sc-mars`, `offline`),
 `truncation_positions` is `None` and the token cap simplifies to:
 
 - Early stopping: `min(sampled_tokens, p)`

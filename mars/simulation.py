@@ -1,8 +1,9 @@
 """
 Unified simulation engine.
 
-Every method (SC-AM, DC-AM, DCO-AM, DC-QM, offline) is a call to
-simulate_with_stopping() with different inputs and a different StoppingStrategy.
+Every method (offline, dco, sc-mars / dco-mars and their -cal / -oracle
+variants, sc-pp) is a call to simulate_with_stopping() with different inputs
+and a different StoppingStrategy.
 """
 
 from __future__ import annotations
@@ -1016,27 +1017,27 @@ def worker_process_question(args: tuple) -> tuple[int, Optional[Dict[str, Any]]]
     #
     # Methods are parameterizations of one simulation loop, differing in vote
     # weighting, trace filtering, and stopping rule:
-    #   offline       : uniform weights, no stopping, all 7 DeepConf voting methods
-    #   dco           : conf weights + threshold filter (DeepConf Online), NeverStop
-    #   sc-qm3-nc     : uniform weights, MARS stopping (learned 5-feature q-model)
-    #   dco-qm3-nc    : DeepConf filter + MARS stopping
-    #   *-oqg         : *-qm3-nc with oracle-q used for per-question gamma calibration
-    #   sc/dco-oq-nc  : MARS stopping with oracle-q (diagnostic upper bound)
-    #   sc-pp         : Parallel-Probe baseline (consensus stability + pruning)
-    #   *-dco / oracle: confidence weighting / oracle stopping bounds
+    #   offline            : uniform weights, no stopping, all 7 DeepConf voting methods
+    #   dco                : conf weights + threshold filter (DeepConf Online), NeverStop
+    #   sc-mars            : uniform weights, MARS stopping (learned 5-feature q-model)
+    #   dco-mars           : DeepConf filter + MARS stopping
+    #   *-mars-cal         : MARS with per-question gamma calibration (oracle-q for calib)
+    #   sc/dco-mars-oracle : MARS stopping with oracle-q (diagnostic upper bound)
+    #   sc-pp              : Parallel-Probe baseline (consensus stability + pruning)
+    #   oracle / oracle-dco: oracle stopping bounds (optimistic/absorbing)
     #
     weights = None
     filter_mask = None
     truncation_positions = None
 
-    if method in ('dco', 'oracle-dco', 'dco-oq-nc', 'dco-qm3-nc-oqg'):
+    if method in ('dco', 'oracle-dco', 'dco-mars-oracle', 'dco-mars-cal'):
         weights = samples['sampled_conf_at_pos']  # [n_iter, budget, n_pos] — position-dependent
 
     # Threshold filter (the DeepConf-Online "discard low-confidence traces" step).
-    # Note: dco-qm3-nc gets the filter+truncation but NOT confidence weighting
+    # Note: dco-mars gets the filter+truncation but NOT confidence weighting
     # (it is intentionally absent from the tuple above), so it votes uniformly
     # over the filtered set.
-    if method in ('dco', 'oracle-dco', 'dco-oq-nc', 'dco-qm3-nc', 'dco-qm3-nc-oqg'):
+    if method in ('dco', 'oracle-dco', 'dco-mars-oracle', 'dco-mars', 'dco-mars-cal'):
         warmup_n = method_config.get('warmup', 16)
         warmup_confs = samples['sampled_min_confs'][:, :warmup_n]  # OK: warmup fully observed
         thresholds = np.percentile(warmup_confs, 90, axis=1)  # [n_iter]
@@ -1111,22 +1112,22 @@ def worker_process_question(args: tuple) -> tuple[int, Optional[Dict[str, Any]]]
         return qid, output
 
     # Stopping strategies (label, strategy) — checked in order, first match wins
-    if method in ('sc-qm3-nc', 'dco-qm3-nc', 'sc-qm3-nc-oqg', 'dco-qm3-nc-oqg'):
-        # QM3: 5-feature q-model (qm2 minus dead has_answer) + Platt calibration
-        # *-oqg variants: learned q at inference, oracle q for gamma calibration.
+    if method in ('sc-mars', 'dco-mars', 'sc-mars-cal', 'dco-mars-cal'):
+        # MARS: learned 5-feature switch-probability model + Platt calibration.
+        # *-cal variants: learned q at inference, oracle q for gamma calibration.
         from .q_model import (
-            build_feature_matrix_v3,
+            build_switch_features,
             build_training_labels,
             fit_q_model,
             fit_platt_calibration,
-            precompute_q_values_v3,
+            precompute_switch_probs,
         )
-        from .voting import PerTraceQStopping
+        from .voting import MarsStopping
 
         delta = method_config.get('delta', 0.05)
-        use_oracle_gamma = method.endswith('-oqg')
+        use_oracle_gamma = method.endswith('-cal')
 
-        warmup_X = build_feature_matrix_v3(
+        warmup_X = build_switch_features(
             precomputed.probe_positions,
             precomputed.conf_at_pos[warmup_ids],
             precomputed.flips[warmup_ids],
@@ -1143,7 +1144,7 @@ def worker_process_question(args: tuple) -> tuple[int, Optional[Dict[str, Any]]]
         calibrator = fit_platt_calibration(warmup_q_pred, warmup_y)
 
         # Precompute q values for all traces
-        q_values = precompute_q_values_v3(
+        q_values = precompute_switch_probs(
             model, calibrator,
             precomputed.conf_at_pos, precomputed.flips,
             precomputed.streaks, precomputed.probe_positions,
@@ -1167,7 +1168,7 @@ def worker_process_question(args: tuple) -> tuple[int, Optional[Dict[str, Any]]]
             )
 
         stopping_strategies = [
-            ("margin", PerTraceQStopping(
+            ("margin", MarsStopping(
                 q_t=sampled_q,
                 w_max=w_max,
                 delta=delta,
@@ -1177,10 +1178,10 @@ def worker_process_question(args: tuple) -> tuple[int, Optional[Dict[str, Any]]]
                 warmup_ref_answer=warmup_ref_answer,
             )),
         ]
-    elif method in ('dco-oq-nc', 'sc-oq-nc'):
-        # Oracle q_t + PerTraceQStopping (no correction) — diagnostic
+    elif method in ('dco-mars-oracle', 'sc-mars-oracle'):
+        # Oracle q_t + MarsStopping (no correction) — diagnostic
         from .q_model import compute_oracle_q_values
-        from .voting import PerTraceQStopping
+        from .voting import MarsStopping
 
         delta = method_config.get('delta', 0.05)
 
@@ -1200,7 +1201,7 @@ def worker_process_question(args: tuple) -> tuple[int, Optional[Dict[str, Any]]]
             )
 
         stopping_strategies = [
-            ("margin", PerTraceQStopping(
+            ("margin", MarsStopping(
                 q_t=sampled_q,
                 w_max=w_max,
                 delta=delta,

@@ -68,7 +68,7 @@ def compute_streaks(ans_ids_at_pos: np.ndarray) -> np.ndarray:
 # Feature Matrix Assembly
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_feature_matrix(
+def _build_base_features(
     positions: np.ndarray,
     conf_at_pos: np.ndarray,
     flips: np.ndarray,
@@ -317,7 +317,7 @@ def fit_platt_calibration(
 # Feature Matrix (5 features) + q_t precompute
 # ─────────────────────────────────────────────────────────────────────────────
 
-def build_feature_matrix_v3(
+def build_switch_features(
     positions: np.ndarray,          # [n_positions]
     conf_at_pos: np.ndarray,        # [n_traces, n_positions] float32
     flips: np.ndarray,              # [n_traces, n_positions] int16
@@ -333,7 +333,7 @@ def build_feature_matrix_v3(
     n_traces, n_positions = conf_at_pos.shape
 
     # Base 4 features: [position, confidence, flips, streak]
-    X_base = build_feature_matrix(positions, conf_at_pos, flips, streaks)
+    X_base = _build_base_features(positions, conf_at_pos, flips, streaks)
 
     # conf_trend: conf(p) - conf(p-1), 0 at first position
     conf_trend = np.zeros_like(conf_at_pos, dtype=np.float64)
@@ -343,7 +343,7 @@ def build_feature_matrix_v3(
     return np.column_stack([X_base, conf_trend.ravel()])
 
 
-def precompute_q_values_v3(
+def precompute_switch_probs(
     model: FittedQModel,
     calibrator: Optional[PlattCalibrator],
     conf_at_pos: np.ndarray,
@@ -366,7 +366,7 @@ def precompute_q_values_v3(
     Returns:
         q_values: [n_traces, n_positions] float32
     """
-    X = build_feature_matrix_v3(
+    X = build_switch_features(
         positions, conf_at_pos, flips, streaks,
     )
     q_flat = model.predict(X)

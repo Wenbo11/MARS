@@ -108,7 +108,7 @@ class StoppingStrategy(Protocol):
 # Built-in Strategies
 # ─────────────────────────────────────────────────────────────────────────────
 
-class PerTraceQStopping:
+class MarsStopping:
     """Per-trace q model: stop when margin > sum(q_t * c_t) + correction.
 
     Uses precomputed q_t values indexed by (bootstrap_sample, position).

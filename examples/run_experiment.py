@@ -10,14 +10,14 @@ Usage examples:
     python examples/run_experiment.py --dataset aime-2025 --method dco
 
     # MARS on self-consistency, fully conservative (gamma=1)
-    python examples/run_experiment.py --dataset aime-2025 --method sc-qm3-nc
+    python examples/run_experiment.py --dataset aime-2025 --method sc-mars
 
     # MARS on self-consistency, calibrated gamma
-    python examples/run_experiment.py --dataset aime-2025 --method sc-qm3-nc-oqg \
+    python examples/run_experiment.py --dataset aime-2025 --method sc-mars-cal \
         --warmup-gamma --ucb-z 1.0 --gamma-min 0.5
 
     # MARS on DeepConf Online, calibrated gamma
-    python examples/run_experiment.py --dataset aime-2025 --method dco-qm3-nc-oqg \
+    python examples/run_experiment.py --dataset aime-2025 --method dco-mars-cal \
         --warmup-gamma --ucb-z 1.0 --gamma-min 0.5
 
     # Parallel-Probe baseline
@@ -109,17 +109,17 @@ def parse_args():
             # baselines (full budget, no stopping)
             "offline", "dco",
             # MARS — learned 5-feature q-model (paper "MARS")
-            "sc-qm3-nc", "dco-qm3-nc",
-            "sc-qm3-nc-oqg", "dco-qm3-nc-oqg",
+            "sc-mars", "dco-mars",
+            "sc-mars-cal", "dco-mars-cal",
             # MARS — oracle-q diagnostic (retrospective switch labels)
-            "sc-oq-nc", "dco-oq-nc",
+            "sc-mars-oracle", "dco-mars-oracle",
             # oracle stopping bounds (diagnostic)
             "oracle", "oracle-dco",
             # Parallel-Probe baseline
             "sc-pp",
         ],
-        default="sc-qm3-nc-oqg",
-        help="See README method table. *-oqg adds --warmup-gamma calibration.",
+        default="sc-mars-cal",
+        help="See README method table. *-cal adds --warmup-gamma calibration.",
     )
     parser.add_argument("--delta", type=float, default=0.05,
                         help="Failure probability for the Hoeffding correction "

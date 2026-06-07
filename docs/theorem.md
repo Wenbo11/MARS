@@ -144,8 +144,8 @@ margin) are shown for theoretical comparison; they are not part of the released 
 | Method | (a) Destination $\Phi_k$ | (b) Switching randomness | (c) q-model error |
 |--------|--------------------------|--------------------------|---------------------|
 | **Oracle** | Known exactly | N/A (deterministic) | N/A (known $q_j^* \in \{0,1\}$) |
-| **NC, oracle $q$** (`*-oq-nc`) | Adversarial worst-case | Hoeffding correction (off by default) | None ($q_j^*$ known) |
-| **MARS, learned $q$** (`*-qm3-nc`) | Adversarial worst-case | NC structural buffer absorbs | NC structural buffer + $\gamma$ calibration absorb |
+| **NC, oracle $q$** (`*-mars-oracle`) | Adversarial worst-case | Hoeffding correction (off by default) | None ($q_j^*$ known) |
+| **MARS, learned $q$** (`*-mars`) | Adversarial worst-case | NC structural buffer absorbs | NC structural buffer + $\gamma$ calibration absorb |
 | _NC, CLT correction_ (theory) | Adversarial worst-case | CLT correction (tighter) | — |
 | _Fixed-$\alpha$ margin_ (theory) | Adversarial worst-case | Implicit (uniform $\alpha$) | N/A ($\alpha$ is a hyperparameter) |
 

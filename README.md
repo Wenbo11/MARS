@@ -71,11 +71,11 @@ uv run python examples/run_experiment.py --model deepseek-8b --dataset brumo-202
 
 # MARS on self-consistency (calibrated gamma)
 uv run python examples/run_experiment.py --model deepseek-8b --dataset brumo-2025 \
-    --method sc-qm3-nc-oqg --warmup-gamma --ucb-z 1.0 --gamma-min 0.5
+    --method sc-mars-cal --warmup-gamma --ucb-z 1.0 --gamma-min 0.5
 
 # MARS on DeepConf Online
 uv run python examples/run_experiment.py --model deepseek-8b --dataset brumo-2025 \
-    --method dco-qm3-nc-oqg --warmup-gamma --ucb-z 1.0 --gamma-min 0.5
+    --method dco-mars-cal --warmup-gamma --ucb-z 1.0 --gamma-min 0.5
 ```
 
 All reported runs use `--budget 512 --iterations 64 --warmup 16 --window 2048 --seed 42`.
@@ -89,18 +89,18 @@ and **DCO** (DeepConf Online, confidence weighting + threshold filtering). Each
 | Paper row | SC pipeline | DCO pipeline |
 |---|---|---|
 | Baseline (full budget) | `offline` | `dco` |
-| MARS, fully conservative ($\gamma=1$) | `sc-qm3-nc` | `dco-qm3-nc` |
-| MARS, calibrated $\gamma$ | `sc-qm3-nc-oqg` † | `dco-qm3-nc-oqg` † |
-| MARS, oracle-$q$ diagnostic | `sc-oq-nc` | `dco-oq-nc` |
+| MARS, fully conservative ($\gamma=1$) | `sc-mars` | `dco-mars` |
+| MARS, calibrated $\gamma$ | `sc-mars-cal` † | `dco-mars-cal` † |
+| MARS, oracle-$q$ diagnostic | `sc-mars-oracle` | `dco-mars-oracle` |
 | Parallel-Probe baseline | `sc-pp` | — |
 
 † add `--warmup-gamma --ucb-z 1.0 --gamma-min 0.5` for per-question $\gamma$
-calibration. (The oracle-$q$ rows replace the learned switch model with the
+calibration. (The `-oracle` rows replace the learned switch model with the
 retrospective switch indicator — a diagnostic upper bound, not deployable.)
 
 > The Hoeffding concentration term $\epsilon(N,\delta)$ from the safety theorem
 > is **off** in all reported runs (the calibrated rule above is used). It can be
-> enabled in code (`PerTraceQStopping(use_correction=True)`); `--delta` only
+> enabled in code (`MarsStopping(use_correction=True)`); `--delta` only
 > affects that path.
 
 ## Results

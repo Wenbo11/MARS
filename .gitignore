@@ -7,12 +7,12 @@ env/
 # (uv.lock IS committed for reproducible installs)
 
 # Trace data and caches — large; not committed.
-# Question JSONL files (e.g. data/*.jsonl) ARE committed; trace pools are not.
-data/**/*.pkl
-data/**/*.npz
-data/**/.cache_*/
-data/*/
+# Only data/*.jsonl (question files) and data/README.md are committed.
+# Everything else under data/ — model dirs, trace pools, caches, and any
+# symlinks to external data pools — stays local.
+data/*
 !data/*.jsonl
+!data/README.md
 
 # Generation pipeline outputs
 outputs*/
@@ -52,3 +52,6 @@ Thumbs.db
 
 # Claude Code
 .claude/
+
+# Local benchmark references for comparison (not released)
+docs/benchmarks_local/

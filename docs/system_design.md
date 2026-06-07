@@ -31,20 +31,20 @@ made. The released set is exactly the methods reported in the paper.
 |--------|---------|--------------|-------------------|
 | offline | uniform | None | NeverStop + all 7 DeepConf voting methods |
 | dco | conf_at_pos | threshold + trunc | NeverStop (DeepConf Online baseline) |
-| sc-qm3-nc | uniform | None | MARS (learned 5-feature q-model) |
-| dco-qm3-nc | uniform | threshold + trunc | MARS on DeepConf-filtered traces |
-| sc-qm3-nc-oqg | uniform | None | MARS + per-question $\gamma$ calibration |
-| dco-qm3-nc-oqg | conf_at_pos | threshold + trunc | MARS + $\gamma$ calibration on DeepConf |
-| sc-oq-nc, dco-oq-nc | uniform / conf | None / filter | MARS with oracle-$q$ (diagnostic) |
+| sc-mars | uniform | None | MARS (learned 5-feature q-model) |
+| dco-mars | uniform | threshold + trunc | MARS on DeepConf-filtered traces |
+| sc-mars-cal | uniform | None | MARS + per-question $\gamma$ calibration |
+| dco-mars-cal | conf_at_pos | threshold + trunc | MARS + $\gamma$ calibration on DeepConf |
+| sc-mars-oracle, dco-mars-oracle | uniform / conf | None / filter | MARS with oracle-$q$ (diagnostic) |
 | oracle, oracle-dco | — | — | Oracle stopping bounds (optimistic/absorbing) |
 | sc-pp | uniform | None | Parallel-Probe baseline |
 
 Where:
-- **Weights**: per-trace vote weight (`1.0` for uniform, or `conf_at_pos` — position-dependent sliding-window mean confidence). `dco`-prefixed methods use confidence weighting; `sc`-prefixed use uniform. (Note: `dco-qm3-nc` applies the filter but votes uniformly over the filtered set; `dco-qm3-nc-oqg` adds confidence weighting.)
+- **Weights**: per-trace vote weight (`1.0` for uniform, or `conf_at_pos` — position-dependent sliding-window mean confidence). `dco`-prefixed methods use confidence weighting; `sc`-prefixed use uniform. (Note: `dco-mars` applies the filter but votes uniformly over the filtered set; `dco-mars-cal` adds confidence weighting.)
 - **Filter/Trunc**: DCO methods use a 90th-percentile threshold on `min_group_confidence` computed from warmup traces. Eligibility is position-dependent: once a trace's cumulative-min confidence drops below threshold at any position, it stays excluded at all subsequent positions ($\mathcal{F}_t$-measurable).
 - **Stopping strategy**: a pluggable object that decides when to stop (see Section 4.2).
-- **MARS / NC (Necessary Condition)**: `PerTraceQStopping` — stop when, for every challenger, the leader's margin exceeds the expected adversarial switch cost $\sum_j q_j c_j^k(\gamma)$. Includes a synthetic zero-vote challenger guard. The Hoeffding correction $\epsilon(N,\delta)$ from the safety theorem is available (`use_correction=True`) but **off** in all reported runs.
-- **Gamma calibration**: the `-oqg` methods (with `--warmup-gamma`) calibrate the cost shrinkage factor $\gamma$ per-question from warmup traces, with a UCB correction for structural bias.
+- **MARS / NC (Necessary Condition)**: `MarsStopping` — stop when, for every challenger, the leader's margin exceeds the expected adversarial switch cost $\sum_j q_j c_j^k(\gamma)$. Includes a synthetic zero-vote challenger guard. The Hoeffding correction $\epsilon(N,\delta)$ from the safety theorem is available (`use_correction=True`) but **off** in all reported runs.
+- **Gamma calibration**: the `-cal` methods (with `--warmup-gamma`) calibrate the cost shrinkage factor $\gamma$ per-question from warmup traces, with a UCB correction for structural bias.
 
 The canonical method list lives in `examples/run_experiment.py` (`--method` choices).
 
@@ -52,8 +52,8 @@ The canonical method list lives in `examples/run_experiment.py` (`--method` choi
 
 | Model | Features | Notes |
 |-------|----------|-------|
-| Learned q (`-qm3-`) | position, confidence, flips, streak, conf_trend | 5-feature logistic regression + Platt calibration |
-| Oracle q (`-oq-`) | 1.0 if intermediate != final, else 0.0 | Ground-truth switch labels — diagnostic, not $\mathcal{F}_t$-measurable |
+| Learned q (`-mars`) | position, confidence, flips, streak, conf_trend | 5-feature logistic regression + Platt calibration |
+| Oracle q (`-mars-oracle`) | 1.0 if intermediate != final, else 0.0 | Ground-truth switch labels — diagnostic, not $\mathcal{F}_t$-measurable |
 
 #### Deepconf Voting Methods (offline)
 
@@ -379,7 +379,7 @@ class StoppingStrategy(Protocol):
 
 # ── Built-in Strategies ──
 
-class PerTraceQStopping:
+class MarsStopping:
     """MARS stopping: stop when margin > sum(q_t * c_t(gamma)) [+ correction].
 
     The core MARS rule. Uses per-trace switch-probability estimates q_t and the
@@ -479,10 +479,10 @@ def compute_streaks(ans_ids_at_pos) -> np.ndarray:
 
 # ── Feature Matrix ──
 
-def build_feature_matrix(positions, conf_at_pos, flips, streaks) -> np.ndarray:
+def _build_base_features(positions, conf_at_pos, flips, streaks) -> np.ndarray:
     """Base 4 features [position, confidence, flips, streak]"""
 
-def build_feature_matrix_v3(positions, conf_at_pos, flips, streaks) -> np.ndarray:
+def build_switch_features(positions, conf_at_pos, flips, streaks) -> np.ndarray:
     """5 features [position, confidence, flips, streak, conf_trend]
     (the MARS switch-probability feature set)."""
 
@@ -529,7 +529,7 @@ def compute_oracle_q_values(ans_ids_at_pos, final_answer_ids) -> np.ndarray:
 
 # ── Precomputing q_t for simulation ──
 
-def precompute_q_values_v3(model, calibrator, conf_at_pos, flips, streaks,
+def precompute_switch_probs(model, calibrator, conf_at_pos, flips, streaks,
                             positions) -> np.ndarray:
     """5 features + optional Platt calibration → [n_traces, n_positions] float32."""
 ```
@@ -850,8 +850,8 @@ PKL_DATASETS = {
 def parse_args():
     # --model {deepseek-8b, qwen3-32b, qwen3-next}
     # --dataset {aime-2025, hmmt, brumo-2025, aime-2024}
-    # --method {offline, dco, sc-qm3-nc, dco-qm3-nc,
-    #           sc-qm3-nc-oqg, dco-qm3-nc-oqg, sc-oq-nc, dco-oq-nc,
+    # --method {offline, dco, sc-mars, dco-mars,
+    #           sc-mars-cal, dco-mars-cal, sc-mars-oracle, dco-mars-oracle,
     #           oracle, oracle-dco, sc-pp}
     # --delta, --budget, --iterations
     # --warmup, --window, --seed, --workers, --output-dir
@@ -910,17 +910,17 @@ if method matches 'dco*':
     # Dynamic eligibility: cumulative-min ensures permanent truncation
     filter_mask = cum_min_conf >= thresholds  # 3D [n_iter, budget, n_pos]
 
-# Stopping strategy (by method suffix):
-#   *-qm3-nc / *-oq-nc -> PerTraceQStopping (MARS, use_correction=False)
-#   sc-pp              -> ParallelProbeStopping
-#   offline/dco        -> NeverStop (+ 7 deepconf voting methods for offline)
+# Stopping strategy (by method name):
+#   *-mars*     -> MarsStopping (use_correction=False)
+#   sc-pp       -> ParallelProbeStopping
+#   offline/dco -> NeverStop (+ 7 deepconf voting methods for offline)
 
-# Q model selection (by method infix):
-#   *-qm3-* -> learned 5-feature logistic q + Platt calibration
-#   *-oq-*  -> oracle q (ground-truth switch labels; diagnostic)
+# Q model selection (by method name):
+#   *-mars / *-mars-cal -> learned 5-feature logistic q + Platt calibration
+#   *-mars-oracle  -> oracle q (ground-truth switch labels; diagnostic)
 
 # Gamma calibration (if --warmup-gamma):
-#   calibrate_gamma_warmup() on warmup traces, passed to PerTraceQStopping
+#   calibrate_gamma_warmup() on warmup traces, passed to MarsStopping
 ```
 
 ---
@@ -952,11 +952,11 @@ Phase 0: PRECOMPUTATION (per question, done once, cached to disk as NPZ)
     Amortized across all 64 iterations and all subsequent runs.
 
 Phase 1: Q MODEL TRAINING (per question, only for NC/CLT/WD stopping methods)
-    build_feature_matrix   — assemble [n_warmup * n_pos, D] matrix (D=4/5/6 by variant)
+    _build_base_features   — assemble [n_warmup * n_pos, D] matrix (D=4/5/6 by variant)
     build_training_labels  — compare ans_ids_at_pos to final answer, vectorized
     fit_q_model            — logistic regression on ~160 observations, D features
     [optional] fit_platt_calibration — on warmup predictions vs labels (QM2/QM3 only)
-    precompute_q_values_v3 — predict on [512, ~128] = ~65K samples, pure matrix multiply
+    precompute_switch_probs — predict on [512, ~128] = ~65K samples, pure matrix multiply
     [optional] calibrate_gamma_warmup — sweep gamma grid on warmup (if --warmup-gamma)
     For oracle-q methods: compute_oracle_q_values (no training needed)
     Cost: ~20ms per question (dominated by logistic fit, not in hot path).
@@ -1027,13 +1027,13 @@ Per question, per worker:
     ──────────────────────────────────────────────────────
     Shared across methods:                       ~ 9 MB
 
-    Per-trace q adds (only when using PerTraceQStopping):
+    Per-trace q adds (only when using MarsStopping):
     sampled_q         [64, 512, ~128]  float32  ~  8 MB
     sampled_flips     [64, 512, ~128]  int16    ~  8 MB  (only during precompute)
     sampled_streaks   [64, 512, ~128]  int16    ~  8 MB  (only during precompute)
     ──────────────────────────────────────────────────────
     At simulation time: sampled_q is the only addition.
-    flips/streaks are consumed during precompute_q_values_v3 and not retained.
+    flips/streaks are consumed during precompute_switch_probs and not retained.
     Total with q model: ~20 MB per worker. Still fits in L3 cache.
 ```
 
@@ -1112,13 +1112,13 @@ custom q estimate:
 
 ```python
 model = fit_q_model(warmup_X, warmup_y)
-q_values = precompute_q_values_v3(model, calibrator, precomp.conf_at_pos,
+q_values = precompute_switch_probs(model, calibrator, precomp.conf_at_pos,
                                   precomp.flips, precomp.streaks,
                                   precomp.probe_positions)
 sampled_q = q_values[samples['indices']]
 
 stopping_strategies = [
-    ("margin", PerTraceQStopping(q_t=sampled_q, w_max=1.0,
+    ("margin", MarsStopping(q_t=sampled_q, w_max=1.0,
                                  delta=0.05, n_answers=precomp.n_answers,
                                  use_correction=False, gamma=gamma)),
 ]
@@ -1169,10 +1169,10 @@ strategy is the only thing that changes.
   │                      │ │                      │ │                              │
   │ group_confidences()  │ │ compute_flips()      │ │ save_experiment()            │
   │ group_confs_batch()  │ │ compute_streaks()    │ │ load_experiment()            │
-  │ min_group_conf()     │ │ build_feature_matrix │ │ aggregate_per_question()     │
-  │ bottom_10_conf()     │ │ build_feature_mtx_v3 │ │ aggregate_overall()          │
+  │ min_group_conf()     │ │ _build_base_features │ │ aggregate_per_question()     │
+  │ bottom_10_conf()     │ │ build_switch_features │ │ aggregate_overall()          │
   │ compute_conf_metrics │ │ fit_q_model()        │ │ generate_output_dir()        │
-  │ conf_at_positions()  │ │ precompute_q_vals_v3 │ │                              │
+  │ conf_at_positions()  │ │ precompute_switch_probs │ │                              │
   │ conf_at_pos_batch()  │ │ fit_platt_calib()    │ │                              │
   │ find_trunc_position  │ │ compute_oracle_q()   │ │ ExperimentConfig:            │
   │                      │ │ PlattCalibrator      │ │   method, dataset, budget,   │
@@ -1195,7 +1195,7 @@ strategy is the only thing that changes.
   │  StoppingStrategy.check(PositionState) → bool[n_active] │       │
   │                                                        │       │
   │  ┌──────────────────────────────┐ ┌────────────────────┐│       │
-  │  │ PerTraceQStopping (MARS)     │ │ ParallelProbeStopping ││     │
+  │  │ MarsStopping (MARS)     │ │ ParallelProbeStopping ││     │
   │  │                              │ │                    │ │       │
   │  │ 1. Zero-vote guard:          │ │ consensus stable   │ │       │
   │  │    leader > sum(q*c_worst)   │ │ for `conv` probes  │ │       │
@@ -1328,8 +1328,8 @@ strategy is the only thing that changes.
   │  │                                                                        │ │
   │  │  --model {deepseek-8b, qwen3-32b, qwen3-next}                         │ │
   │  │  --dataset {aime-2025, hmmt, brumo-2025, aime-2024}                   │ │
-  │  │  --method {offline, dco, sc-qm3-nc, dco-qm3-nc,                       │ │
-  │  │            sc-qm3-nc-oqg, dco-qm3-nc-oqg, sc-oq-nc, dco-oq-nc,        │ │
+  │  │  --method {offline, dco, sc-mars, dco-mars,                       │ │
+  │  │            sc-mars-cal, dco-mars-cal, sc-mars-oracle, dco-mars-oracle,        │ │
   │  │            oracle, oracle-dco, sc-pp}                                 │ │
   │  │  --warmup-gamma, --ucb-z, --gamma, --gamma-min                       │ │
   │  │                                                                        │ │
@@ -1340,7 +1340,7 @@ strategy is the only thing that changes.
   │  │  Method dispatch in worker_process_question():                         │ │
   │  │    Weighting: sc-* uniform | dco-* conf_at_pos                        │ │
   │  │    Filtering: dco-* threshold+trunc (cumulative-min)                  │ │
-  │  │    Q model:   *-qm3-* learned 5-feature | *-oq-* oracle              │ │
+  │  │    Q model:   *-mars* learned 5-feature | *-mars-oracle oracle              │ │
   │  │    Stopping:  *-nc MARS | sc-pp Parallel-Probe | else NeverStop      │ │
   │  │    Gamma:     --warmup-gamma calibrates per-question                  │ │
   │  └────────────────────────────────────────────────────────────────────────┘ │

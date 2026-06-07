@@ -17,7 +17,7 @@ results/
         └── summary_overall.csv      # Overall performance summary
 ```
 
-Example: `results/aime-2025/sc-qm3-nc-oqg_ggwarmup_20260503_204401/`
+Example: `results/aime-2025/sc-mars-cal_ggwarmup_20260503_204401/`
 
 For the `offline` method, additional per-voting-method CSVs are created:
 `results_{voting_method}.csv`.
@@ -91,7 +91,7 @@ Serialized `ExperimentConfig` dataclass with all parameters needed to reproduce 
 
 ```json
 {
-  "method": "sc-qm3-nc-oqg",
+  "method": "sc-mars-cal",
   "dataset": "aime-2025",
   "budget": 512,
   "n_iterations": 64,
@@ -100,7 +100,7 @@ Serialized `ExperimentConfig` dataclass with all parameters needed to reproduce 
   "seed": 42,
   "weighting": "uniform",
   "truncation": false,
-  "stopping": "oqg",
+  "stopping": "cal",
   "extra": {
     "delta": 0.05,
     "gamma": 1.0,
@@ -117,7 +117,7 @@ Serialized `ExperimentConfig` dataclass with all parameters needed to reproduce 
 
 | Component | Description |
 |-----------|-------------|
-| `method` | Method name (e.g., `sc-qm3-nc`, `dco-qm3-nc-oqg`) |
+| `method` | Method name (e.g., `sc-mars`, `dco-mars-cal`) |
 | `param_str` | Encoded parameters (e.g., `ggwarmup`, `g1`) |
 | `YYYYMMDD_HHMMSS` | Timestamp |
 

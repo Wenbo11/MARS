@@ -21,7 +21,7 @@ from .pkl_loader import (
 )
 from .answer_equiv import answers_equivalent, group_equivalent_answers
 from .voting import (
-    PerTraceQStopping,
+    MarsStopping,
     ConsensusStopping,
     CompositeStopping,
     ParallelProbeStopping,
@@ -55,7 +55,7 @@ __all__ = [
     "load_pkl_dataset", "load_pkl_question", "split_pkl_to_per_question",
     "answers_equivalent", "group_equivalent_answers",
     # stopping strategies
-    "PerTraceQStopping", "ConsensusStopping", "CompositeStopping",
+    "MarsStopping", "ConsensusStopping", "CompositeStopping",
     "ParallelProbeStopping", "NeverStop", "calibrate_gamma_warmup",
     # simulation engine
     "PrecomputedQuestion", "SimulationResult",
