@@ -6,9 +6,9 @@ answers probed at fixed token intervals, MARS simulates budget-K parallel
 runs (via bootstrap), votes at each checkpoint, and decides when the leading
 answer is safe to commit — saving tokens without sacrificing accuracy.
 
-See the paper (Margin-Adversarial Risk-controlled Stopping) for the method;
-`docs/system_design.md` for the architecture; `docs/data_format.md` for the
-trace pickle schema produced by the `generation/` pipeline.
+See the paper (Margin-Adversarial Risk-controlled Stopping) for the method, and
+`docs/data_format.md` for the trace pickle schema produced by the `generation/`
+pipeline.
 """
 
 from .raw_traces import RawDataset, RawQuestion, RawTrace

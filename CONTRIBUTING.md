@@ -10,18 +10,17 @@ new stopping strategies.
    the generation pipeline).
 3. If you change behavior, verify that the reported benchmark numbers still
    reproduce (see the README results table) and note any deltas in the PR.
-4. If you add a method or strategy, document it in `docs/system_design.md` and
-   add it to the `--method` choices in `examples/run_experiment.py`.
+4. If you add a method or strategy, add it to the `--method` choices in
+   `examples/run_experiment.py` and document it in the README method table.
 5. Keep the layered import rule: each module imports only from layers below it
-   (see `docs/system_design.md` §3).
+   (data loaders → primitives → simulation engine → CLI).
 
 ## Adding a stopping strategy
 
-Implement the `StoppingStrategy` protocol — a single
+Implement the `StoppingStrategy` protocol (see `mars/voting.py`) — a single
 `check(state: PositionState) -> np.ndarray` method returning a per-iteration
-boolean — and wire it into a new `--method` branch in
-`worker_process_question()`. No change to the simulation loop is needed
-(see `docs/system_design.md` §7).
+boolean — and wire it into a new `--method` branch in `worker_process_question()`
+(`mars/simulation.py`). No change to the simulation loop is needed.
 
 ## Reproducibility
 

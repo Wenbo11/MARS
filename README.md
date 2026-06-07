@@ -45,8 +45,9 @@ challenger — including a synthetic unseen one — is certified.
 - **$\gamma \in [\tfrac12, 1]$** relaxes the fully-adversarial cost toward observed
   destination behavior, calibrated per question from warmup traces.
 
-See the paper for the safety theorem and [`docs/system_design.md`](docs/system_design.md)
-for the implementation.
+See the paper for the safety theorem and proofs; the `mars/` source is small and
+documented inline (`mars/voting.py` for the stopping rule, `mars/q_model.py` for
+the switch-probability model).
 
 ## Install
 
@@ -62,8 +63,10 @@ uv sync --extra generation   # + trace/probe generation (needs CUDA + SGLang)
 
 ## Quick start (simulator)
 
-Run a method over a model–dataset pool. Results are written under
-`results/{model}/{dataset}/` (see [`docs/experiment_output_convention.md`](docs/experiment_output_convention.md)).
+Run a method over a model–dataset pool. Each run writes a timestamped folder
+under `results/{model}/{dataset}/` containing `config.json` (the exact
+parameters), `results.csv` (per-iteration: answer, correctness, tokens,
+stop position), and `summary_per_question.csv` / `summary_overall.csv`.
 
 ```bash
 # Self-consistency baseline (full budget, no stopping)
@@ -134,7 +137,7 @@ simulator reads.
 mars/             # simulator package (loaders, voting, q-model, simulation engine)
 generation/       # trace + probe generation (SGLang, multi-GPU)
 examples/         # run_experiment.py — unified CLI
-docs/             # system_design, data_format, theorem, output convention
+docs/             # data_format.md — the trace pickle schema
 data/             # question files (JSONL) + trace pools (see docs/data_format.md)
 ```
 

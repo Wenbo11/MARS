@@ -6,7 +6,7 @@ full-budget endpoint) using logistic regression on five F_t-measurable,
 trace-intrinsic features: [position, confidence, flips, streak, conf_trend],
 with optional Platt calibration.
 
-See docs/system_design.md and the paper's switch-probability appendix.
+See the paper's switch-probability appendix for the model details.
 """
 
 from __future__ import annotations

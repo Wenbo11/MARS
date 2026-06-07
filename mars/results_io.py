@@ -2,7 +2,8 @@
 Standardized experiment I/O.
 
 A single set of functions for saving, loading, and aggregating experiment
-results into the convention documented in docs/experiment_output_convention.md.
+results. Each run writes config.json, results.csv (per-iteration), and
+summary_per_question.csv / summary_overall.csv under results/{model}/{dataset}/.
 """
 
 import json
