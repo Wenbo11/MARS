@@ -117,13 +117,13 @@ per-question token reductions vs each pipeline's own baseline.
 |-------|---------|----|-------|---------|-----|-------|---------|
 | DeepSeek-8B | BRUMO '25 | 93.2 | 93.2 | 33.7% | 93.3 | 93.3 | 17.1% |
 | DeepSeek-8B | AIME '25  | 83.3 | 83.3 | 36.3% | 88.6 | 88.6 | 18.2% |
-| DeepSeek-8B | HMMT      | 70.0 | 70.0 | 28.4% | 78.7 | 78.6 | 13.4% |
-| Qwen3-32B | BRUMO '25   | 90.9 | 90.3 | 35.8% | 92.4 | 92.4 | 23.1% |
-| Qwen3-32B | AIME '25    | 80.1 | 80.1 | 37.1% | 79.8 | 80.1 | 25.9% |
-| Qwen3-32B | HMMT        | 62.8 | 62.8 | 24.3% | 65.1 | 65.1 | 15.5% |
-| Qwen3-next | BRUMO '25  | 96.7 | 96.7 | 47.4% | 95.5 | 95.5 | 29.4% |
-| Qwen3-next | AIME '25   | 86.9 | 86.9 | 41.4% | 90.0 | 90.0 | 21.1% |
-| Qwen3-next | HMMT       | 86.9 | 86.9 | 31.1% | 82.3 | 82.3 | 16.0% |
+| DeepSeek-8B | HMMT      | 70.0 | 70.0 | 29.3% | 78.7 | 78.6 | 13.8% |
+| Qwen3-32B | BRUMO '25   | 90.9 | 90.3 | 36.2% | 92.4 | 93.0 | 23.2% |
+| Qwen3-32B | AIME '25    | 80.1 | 80.1 | 37.1% | 79.8 | 80.6 | 26.0% |
+| Qwen3-32B | HMMT        | 62.8 | 62.8 | 24.7% | 65.1 | 65.5 | 15.7% |
+| Qwen3-next | BRUMO '25  | 96.7 | 96.7 | 47.4% | 95.4 | 95.5 | 29.4% |
+| Qwen3-next | AIME '25   | 86.9 | 87.7 | 41.4% | 90.0 | 90.0 | 21.2% |
+| Qwen3-next | HMMT       | 86.9 | 86.9 | 31.4% | 82.2 | 82.0 | 16.1% |
 
 ## Generating traces
 
@@ -142,15 +142,7 @@ docs/             # data_format.md — the trace pickle schema
 data/             # question files (JSONL) + trace pools (see docs/data_format.md)
 ```
 
-## Citation
-
-```bibtex
-@article{mars2026,
-  title  = {Margin-Adversarial Risk-controlled Stopping for Parallel LLM Reasoning},
-  author = {Chen, Wenbo and Liu, Mengyang},
-  year   = {2026}
-}
-```
+## Acknowledgements
 
 Math-answer equivalence is adapted from
 [Dynasor](https://github.com/hao-ai-lab/Dynasor) (and originally Qwen2.5-Math).
