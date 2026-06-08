@@ -6,7 +6,7 @@ each pulling (qid, batch_idx) work items from a shared queue so any idle GPU
 can pick up the next batch.
 
 Each batch produces a partial pkl (BATCH_SIZE traces). After all batches for
-a qid complete, they are merged into a single bedrock-format pkl matching
+a qid complete, they are merged into a single conf-source pkl matching
 `deepconf_simple_qid{qid}_rid{rid}_{timestamp}.pkl`.
 
 Usage:
@@ -96,7 +96,7 @@ def worker(gpu_id, work_queue, done_queue, prompts_map, gts_map,
 
 
 def merge_qid(qid, args, gts_map, data, final_dir, batch_dir, timestamp):
-    """Merge all batches for a qid into one bedrock-format pkl."""
+    """Merge all batches for a qid into one conf-source pkl."""
     all_traces = []
     for batch_idx in range(TOTAL_BUDGET // BATCH_SIZE):
         bpath = batch_dir / f"qid{qid}_batch{batch_idx:02d}.pkl"
@@ -229,7 +229,7 @@ def main():
     else:
         print("No work items — all batches already on disk.")
 
-    # Merge per-qid into bedrock-format pkls
+    # Merge per-qid into conf-source pkls
     print("\nMerging batches into per-qid pkls...")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     for qid in args.qids:

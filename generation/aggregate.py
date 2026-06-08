@@ -27,11 +27,11 @@ from pathlib import Path
 import numpy as np
 
 
-def load_bedrock_by_qid(conf_data_dir: Path) -> dict:
+def load_conf_source_by_qid(conf_data_dir: Path) -> dict:
     """Scan conf_data_dir and return {qid: path} for per-qid pkls.
 
-    Matches any rid (e.g. 'ridbedrock', 'riddeepseek', 'ridcoder_next'), so the
-    same aggregator works for bedrock-sourced data and locally-generated data.
+    Matches any rid suffix (e.g. 'riddeepseek', 'ridcoder_next'), so the
+    same aggregator works regardless of how the traces were generated.
     """
     qid_to_path = {}
     for fpath in conf_data_dir.glob("deepconf_simple_qid*_rid*_*.pkl"):
@@ -53,12 +53,12 @@ def aggregate(traces_dir: Path, output_dir: Path, conf_data_dir: Path = None):
     files = sorted(traces_dir.glob("*.pkl"))
     print(f"Found {len(files)} trace files")
 
-    # Pre-index bedrock files by qid (loaded lazily, one per qid)
-    bedrock_index = {}
-    bedrock_cache = {}  # qid -> all_traces list
+    # Pre-index conf-source files by qid (loaded lazily, one per qid)
+    conf_source_index = {}
+    conf_source_cache = {}  # qid -> all_traces list
     if conf_data_dir is not None:
-        bedrock_index = load_bedrock_by_qid(conf_data_dir)
-        print(f"Found {len(bedrock_index)} bedrock files in {conf_data_dir}")
+        conf_source_index = load_conf_source_by_qid(conf_data_dir)
+        print(f"Found {len(conf_source_index)} conf-source files in {conf_data_dir}")
 
     all_traces = {}  # (qid, trace_idx) -> full record
     csv_rows = []
@@ -80,18 +80,18 @@ def aggregate(traces_dir: Path, output_dir: Path, conf_data_dir: Path = None):
 
         extracted_answer = None
 
-        # Merge bedrock data if available
-        if bedrock_index:
-            if qid not in bedrock_cache:
-                bpath = bedrock_index.get(qid)
+        # Merge conf-source data if available
+        if conf_source_index:
+            if qid not in conf_source_cache:
+                bpath = conf_source_index.get(qid)
                 if bpath is None:
-                    bedrock_cache[qid] = None
+                    conf_source_cache[qid] = None
                     missing_qids.add(qid)
                 else:
                     with open(bpath, "rb") as bf:
-                        bedrock_cache[qid] = pickle.load(bf)["all_traces"]
+                        conf_source_cache[qid] = pickle.load(bf)["all_traces"]
 
-            btraces = bedrock_cache[qid]
+            btraces = conf_source_cache[qid]
             if btraces is not None:
                 if trace_idx < len(btraces):
                     btrace = btraces[trace_idx]
@@ -125,12 +125,12 @@ def aggregate(traces_dir: Path, output_dir: Path, conf_data_dir: Path = None):
                 "extracted_answer": extracted_answer,
             })
 
-    if bedrock_index:
-        print(f"Merged bedrock data into {merged_count} traces")
+    if conf_source_index:
+        print(f"Merged conf-source data into {merged_count} traces")
         if missing_qids:
-            print(f"  [warn] no bedrock file for qids: {sorted(missing_qids)}")
+            print(f"  [warn] no conf-source file for qids: {sorted(missing_qids)}")
         if oob_count:
-            print(f"  [warn] trace_idx out of bounds in bedrock for {oob_count} traces")
+            print(f"  [warn] trace_idx out of bounds in conf-source for {oob_count} traces")
 
     # Save pickle
     output_dir.mkdir(parents=True, exist_ok=True)

@@ -37,6 +37,7 @@ import pandas as pd
 
 from mars.npz_loader import load_npz_dataset
 from mars.pkl_loader import split_pkl_to_per_question
+from mars.parquet_loader import split_parquet_to_per_question
 from mars.probed_traces import load_probed_question
 from mars.results_io import (
     ExperimentConfig,
@@ -157,6 +158,7 @@ def main():
     # Resolve data source
     use_pkl = False
     pkl_path = None
+    parquet_path = None
 
     if args.data_dir:
         data_path = Path(args.data_dir)
@@ -164,6 +166,12 @@ def main():
         pkl_path = Path(PKL_DATASETS[args.model][args.dataset])
         data_path = pkl_path.parent
         use_pkl = True
+        # Auto-detect the Hugging Face parquet format: if the .pkl is absent but a
+        # sibling .parquet exists, load from parquet (it builds the same cache).
+        if not pkl_path.exists():
+            cand = pkl_path.with_suffix(".parquet")
+            if cand.exists():
+                parquet_path = cand
     elif args.dataset in DATASET_PATHS and args.model in DATASET_PATHS[args.dataset]:
         data_path = Path(DATASET_PATHS[args.dataset][args.model])
     else:
@@ -172,7 +180,7 @@ def main():
 
     print(f"Dataset:    {args.dataset}")
     print(f"Model:      {args.model}")
-    print(f"Data:       {pkl_path or data_path}")
+    print(f"Data:       {parquet_path or pkl_path or data_path}")
     print(f"Method:     {args.method}")
     print(f"Budget:     {args.budget}")
     print(f"Iterations: {args.iterations}")
@@ -193,12 +201,20 @@ def main():
 
     # Discover available questions and load ground truth
     if use_pkl:
-        # Split the large pkl into per-question files for efficient worker loading
+        # Split the large trace file into per-question files for efficient worker
+        # loading. Both the pkl and parquet splitters write the same cache layout,
+        # so everything downstream is identical.
         q_cache_dir = pkl_path.parent / f".cache_{pkl_path.stem}"
-        print(f"Splitting pkl into per-question cache: {q_cache_dir}")
-        question_ids, ground_truth_map, _ = split_pkl_to_per_question(
-            pkl_path, q_cache_dir,
-        )
+        if parquet_path is not None:
+            print(f"Splitting parquet into per-question cache: {q_cache_dir}")
+            question_ids, ground_truth_map, _ = split_parquet_to_per_question(
+                parquet_path, q_cache_dir,
+            )
+        else:
+            print(f"Splitting pkl into per-question cache: {q_cache_dir}")
+            question_ids, ground_truth_map, _ = split_pkl_to_per_question(
+                pkl_path, q_cache_dir,
+            )
     else:
         raw_traces_dir = data_path / "raw_traces_compact"
         if not raw_traces_dir.exists():
