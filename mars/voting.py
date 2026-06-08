@@ -228,7 +228,7 @@ class MarsStopping:
             safe_a = M_a > threshold
             can_stop &= safe_a | ~relevant
 
-        if self.warmup_ref_answer >= 0:
+        if self.warmup_ref_answer >= 0 and pos_idx == 0:
             can_stop &= (leader_ids == self.warmup_ref_answer)
 
         return can_stop

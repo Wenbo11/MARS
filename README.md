@@ -11,9 +11,10 @@ MARS decides *when to stop* a pool of parallel reasoning traces. Self-consistenc
 and confidence voting run every trace to its full length and then vote; MARS
 instead probes intermediate answers at checkpoints and stops as soon as the
 leading answer is provably safe — when its margin over every challenger exceeds
-the worst-case damage that future answer switches could inflict. It preserves
-full-budget accuracy (within 0.6 pp across 18 settings) while saving **24–47%**
-of tokens under self-consistency and a further **13–29%** on top of DeepConf.
+the worst-case damage that future answer switches could inflict. It matches
+full-budget accuracy across all 18 settings (within 0.6 pp where it changes, and
+improving it by up to 0.8 pp in several) while saving **25–47%** of tokens under
+self-consistency and a further **14–29%** on top of DeepConf.
 
 This repository has two halves:
 
