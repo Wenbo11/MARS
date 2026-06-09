@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="misc/mars.png" alt="MARS logo" width="120"/>
   <h1>MARS</h1>
   <em>Margin-Adversarial Risk-controlled Stopping</em>
   <br/>
