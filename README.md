@@ -62,6 +62,37 @@ uv sync                      # simulator only
 uv sync --extra generation   # + trace/probe generation (needs CUDA + SGLang)
 ```
 
+## Reproduce from the HF dataset
+
+Pre-generated trace pools for all 9 model–dataset combinations are published at
+[huggingface.co/datasets/wenbochen111/MARS](https://huggingface.co/datasets/wenbochen111/MARS)
+(~35 GB, zstd-compressed parquet). Downloading them into `./data/` is all that
+is needed — the runner auto-detects parquet files and no flag changes are
+required.
+
+```bash
+# Download traces (~35 GB)
+huggingface-cli download wenbochen111/MARS --repo-type=dataset --local-dir ./data
+
+# Run any method — same command whether you have pkl or parquet
+uv run python examples/run_experiment.py \
+    --model deepseek-8b --dataset aime-2025 \
+    --method sc-mars-cal \
+    --warmup-gamma --ucb-z 1.0 --gamma-min 0.5
+
+# All reported runs use:
+# --budget 512 --iterations 64 --warmup 16 --window 2048 --seed 42
+```
+
+The dataset also contains `repro_reference/` CSVs with the exact per-question
+accuracy and savings numbers from the paper. Diff your output
+`summary_overall.csv` against the reference to verify reproduction to the
+decimal.
+
+> **Exact reproduction** requires the Dynasor version pinned in `uv.lock`. The
+> answer grouping is frozen in the per-question cache on first run, so downstream
+> numbers are stable once the cache is built.
+
 ## Quick start (simulator)
 
 Run a method over a model–dataset pool. Each run writes a timestamped folder
