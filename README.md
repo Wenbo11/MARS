@@ -2,10 +2,10 @@
   <table border="0" cellpadding="0" cellspacing="0">
     <tr>
       <td><img src="misc/mars.png" alt="MARS logo" width="100"/></td>
-      <td align="left" style="padding-left: 16px">
+      <td align="left" style="padding-left: 15px">
         <h1>MARS</h1>
         <em>Margin-Adversarial Risk-controlled Stopping</em><br/>
-        <em>Token-efficient early stopping for parallel LLM reasoning</em>
+        <em>Token-efficient early stopping for parallel LLM scaling</em>
       </td>
     </tr>
   </table>
