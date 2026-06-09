@@ -1,9 +1,14 @@
 <div align="center">
-  <img src="misc/mars.png" alt="MARS logo" width="120"/>
-  <h1>MARS</h1>
-  <em>Margin-Adversarial Risk-controlled Stopping</em>
-  <br/>
-  <em>Token-efficient early stopping for parallel LLM reasoning</em>
+  <table border="0" cellpadding="0" cellspacing="0">
+    <tr>
+      <td><img src="misc/mars.png" alt="MARS logo" width="100"/></td>
+      <td align="left" style="padding-left: 16px">
+        <h1>MARS</h1>
+        <em>Margin-Adversarial Risk-controlled Stopping</em><br/>
+        <em>Token-efficient early stopping for parallel LLM reasoning</em>
+      </td>
+    </tr>
+  </table>
 </div>
 
 ---
