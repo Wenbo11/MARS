@@ -28,6 +28,12 @@ generation = [
     "ninja",
 ]
 
+[tool.uv]
+# latex2sympy2 pins antlr4-python3-runtime==4.7.2 which is broken on Python >=3.12
+# (imports removed typing.io module). 4.9.3 is compatible with both the generated
+# parser and Python 3.13.
+override-dependencies = ["antlr4-python3-runtime==4.9.3; python_version>='3.13'"]
+
 [tool.uv.sources]
 dynasor = { git = "https://github.com/hao-ai-lab/Dynasor.git" }
 
