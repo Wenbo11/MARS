@@ -107,24 +107,6 @@ retrospective switch indicator — a diagnostic upper bound, not deployable.)
 > enabled in code (`MarsStopping(use_correction=True)`); `--delta` only
 > affects that path.
 
-## Results
-
-Calibrated MARS, `--budget 512 --iterations 64 --seed 42`. "Baseline" is
-full-budget voting accuracy; "+MARS" is early-stopped accuracy. Savings are mean
-per-question token reductions vs each pipeline's own baseline.
-
-| Model | Dataset | SC | +MARS | Savings | DCO | +MARS | Savings |
-|-------|---------|----|-------|---------|-----|-------|---------|
-| DeepSeek-8B | BRUMO '25 | 93.2 | 93.2 | 33.7% | 93.3 | 93.3 | 17.1% |
-| DeepSeek-8B | AIME '25  | 83.3 | 83.3 | 36.3% | 88.6 | 88.6 | 18.2% |
-| DeepSeek-8B | HMMT      | 70.0 | 70.0 | 29.3% | 78.7 | 78.6 | 13.8% |
-| Qwen3-32B | BRUMO '25   | 90.9 | 90.3 | 36.2% | 92.4 | 93.0 | 23.2% |
-| Qwen3-32B | AIME '25    | 80.1 | 80.1 | 37.1% | 79.8 | 80.6 | 26.0% |
-| Qwen3-32B | HMMT        | 62.8 | 62.8 | 24.7% | 65.1 | 65.5 | 15.7% |
-| Qwen3-next | BRUMO '25  | 96.7 | 96.7 | 47.4% | 95.4 | 95.5 | 29.4% |
-| Qwen3-next | AIME '25   | 86.9 | 87.7 | 41.4% | 90.0 | 90.0 | 21.2% |
-| Qwen3-next | HMMT       | 86.9 | 86.9 | 31.4% | 82.2 | 82.0 | 16.1% |
-
 ## Generating traces
 
 To build your own trace pool (or reproduce on a new model/dataset), see
