@@ -9,6 +9,8 @@
       </td>
     </tr>
   </table>
+
+  <a href="https://arxiv.org/abs/2606.12935"><img src="https://img.shields.io/badge/arXiv-2606.12935-b31b1b.svg" alt="arXiv"/></a>
 </div>
 
 ---
@@ -177,6 +179,17 @@ generation/       # trace + probe generation (SGLang, multi-GPU)
 examples/         # run_experiment.py — unified CLI
 docs/             # data_format.md — the trace pickle schema
 data/             # question files (JSONL) + trace pools (see docs/data_format.md)
+```
+
+## Citation
+
+```bibtex
+@article{chen2026mars,
+  title={MARS: Margin-Adversarial Risk-controlled Stopping for Parallel LLM Test-time Scaling},
+  author={Chen, Wenbo and Li, Puheng and Liu, Mengyang and Su, Weijie and Xie, Tianpei},
+  journal={arXiv preprint arXiv:2606.12935},
+  year={2026}
+}
 ```
 
 ## Acknowledgements
