@@ -141,11 +141,6 @@ and **DCO** (DeepConf Online, confidence weighting + threshold filtering). Each
 calibration. (The `-oracle` rows replace the learned switch model with the
 retrospective switch indicator — a diagnostic upper bound, not deployable.)
 
-> The Hoeffding concentration term $\epsilon(N,\delta)$ from the safety theorem
-> is **off** in all reported runs (the calibrated rule above is used). It can be
-> enabled in code (`MarsStopping(use_correction=True)`); `--delta` only
-> affects that path.
-
 ## Results
 
 Calibrated MARS, `--budget 512 --iterations 64 --seed 42`. "Baseline" is
