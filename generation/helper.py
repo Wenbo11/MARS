@@ -87,17 +87,17 @@ def weighted_majority_vote(answers, weights):
     
     return max(answer_weights.keys(), key=lambda x: answer_weights[x])
 
-def prepare_prompt(question_data, tokenizer):
+def prepare_prompt(question_data, tokenizer, system_prompt=None):
     """Prepare prompt for a single question"""
     prompt = question_data['question']
     ground_truth = str(question_data.get('answer', '')).strip()
-    
+
     # Format prompt using chat template
-    messages = [
-        {"role": "system", "content": "该助手为DeepSeek-R1，由深度求索公司创造。\n今天是2025年5月28日，星期一。\n"},
-        {"role": "user", "content": prompt}
-    ]
-    
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": prompt})
+
     full_prompt = tokenizer.apply_chat_template(
         messages,
         tokenize=False,

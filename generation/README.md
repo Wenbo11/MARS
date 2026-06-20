@@ -56,6 +56,7 @@ Configuration constants at the top of the file:
 | `BATCH_SIZE` | 16 | Traces per GPU batch (reduce if OOM) |
 | `MAX_TOKENS` | 64000 | Max generation length |
 | `WINDOW_SIZE` | 2048 | Sliding window for confidence |
+| `DATASET_FILE` | `data/brumo_2025.jsonl` | Bundled sample dataset |
 
 Completed batches are skipped on restart — safe to kill and relaunch.
 

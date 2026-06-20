@@ -1033,10 +1033,9 @@ def worker_process_question(args: tuple) -> tuple[int, Optional[Dict[str, Any]]]
     if method in ('dco', 'oracle-dco', 'dco-mars-oracle', 'dco-mars-cal'):
         weights = samples['sampled_conf_at_pos']  # [n_iter, budget, n_pos] — position-dependent
 
-    # Threshold filter (the DeepConf-Online "discard low-confidence traces" step).
-    # Note: dco-mars gets the filter+truncation but NOT confidence weighting
-    # (it is intentionally absent from the tuple above), so it votes uniformly
-    # over the filtered set.
+    # DeepConf-style methods apply threshold filtering and truncation.
+    # Confidence weights are applied only to methods in the weights tuple above;
+    # dco-mars intentionally remains uniform over the filtered set.
     if method in ('dco', 'oracle-dco', 'dco-mars-oracle', 'dco-mars', 'dco-mars-cal'):
         warmup_n = method_config.get('warmup', 16)
         warmup_confs = samples['sampled_min_confs'][:, :warmup_n]  # OK: warmup fully observed

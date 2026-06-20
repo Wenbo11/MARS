@@ -26,8 +26,15 @@ The `examples/run_experiment.py` registry (`PKL_DATASETS`) maps
    generate → probe → aggregate. See [`../generation/README.md`](../generation/README.md).
    This reproduces the exact pools used in the paper.
 
-2. **Download** a released pool (if/when hosted externally) and place the `.pkl`
-   under `data/<Model>/`.
+2. **Download** the released Hugging Face trace pools:
+
+   ```bash
+   huggingface-cli download wenbochen111/MARS --repo-type=dataset --local-dir ./data
+   ```
+
+   The released files are parquet; `examples/run_experiment.py` auto-detects
+   `*.parquet` when the corresponding local `.pkl` is absent. Legacy `.pkl`
+   pools are still supported under `data/<Model>/`.
 
 On first use the simulator splits the monolithic pool into a per-question cache
 (`.cache_<stem>/`) and a method-agnostic precompute cache

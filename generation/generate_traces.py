@@ -26,7 +26,7 @@ from pathlib import Path
 # Configuration
 MODEL_PATH = "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B"
 MAX_TOKENS = 64000
-DATASET_FILE = "brumo_2025.jsonl"
+DATASET_FILE = "data/brumo_2025.jsonl"
 TOTAL_BUDGET = 4096  # total traces per question
 BATCH_SIZE = 16      # traces per GPU batch (reduce if OOM)
 WINDOW_SIZE = 2048
@@ -147,6 +147,8 @@ def main():
     parser.add_argument("--dataset", type=str, default=DATASET_FILE)
     parser.add_argument("--output-dir", type=str, default="outputs_brumo25_deepseek")
     parser.add_argument("--num-gpus", type=int, default=NUM_GPUS)
+    parser.add_argument("--system-prompt", type=str, default=None,
+                        help="Optional system prompt passed through the chat template")
     parser.add_argument("--dry-run-batches", type=int, default=None,
                         help="Only process this many work items (for testing)")
     args = parser.parse_args()
@@ -163,7 +165,7 @@ def main():
 
     prompts_map, gts_map = {}, {}
     for qid in args.qids:
-        p, gt = prepare_prompt(data[qid], tokenizer)
+        p, gt = prepare_prompt(data[qid], tokenizer, system_prompt=args.system_prompt)
         prompts_map[qid], gts_map[qid] = p, gt
 
     final_dir = Path(args.output_dir)
